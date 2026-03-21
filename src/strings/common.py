@@ -1,0 +1,12 @@
+class CommonStrings:
+    NA = "N/A"
+    LOADING = "Loading..."
+    APPLY = "Apply"
+    CANCEL = "Cancel"
+    CLEAR = "Clear"
+    OK = "OK"
+    DISMISS = "Dismiss"
+    RESET = "Reset"
+    NOT_SET = "Not set"
+    UNKNOWN = "Unknown"
+    VALUE = "Value"

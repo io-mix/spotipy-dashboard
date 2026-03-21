@@ -1,0 +1,9 @@
+flet
+flet-web
+spotipy
+sqlalchemy
+python-dotenv
+psycopg2-binary
+aiosqlite
+asyncpg
+greenlet

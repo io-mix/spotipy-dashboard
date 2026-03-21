@@ -1,0 +1,47 @@
+# 1. Ignore the local runtime folder and environments
+data/
+assets/
+postgres_data/
+venv/
+.venv
+.git/
+__pycache__/
+.gitignore
+.pytest_cache
+
+# System
+.hidden
+*.old
+
+# 2. Ignore secrets and host-specific files
+.env
+postgres_data/
+
+# 3. Ignore Docker configs (They are already on the host)
+compose-up.sh
+compose-down.sh
+
+# IDEs
+.vscode/
+
+# Nix
+.direnv/
+result
+SpotifyAPI
+SpotifyAPI-1-link
+flake.lock
+flake.nix
+start.sh
+flatten.sh
+
+dist/
+build/
+allFiles/
+
+run_windows.bat
+
+# Spotify Auth Cache
+.cache
+
+# GIT
+.gitignore

@@ -1,0 +1,13 @@
+class NavStrings:
+    DASHBOARD = "Dashboard"
+    TIME_MACHINE = "Time Machine"
+    STATISTICS_HEADER = "STATISTICS"
+    TOP_SONGS = "Top Songs"
+    TOP_ALBUMS = "Top Albums"
+    TOP_ARTISTS = "Top Artists"
+    TOP_GENRES = "Top Genres"
+    MUSIC_SOURCE = "Music Profile"
+    HEATMAP = "Heatmap"
+    REDISCOVER = "Rediscover"
+    SYNC_NOW = "Sync Now"
+    AUTHENTICATE = "Authenticate"

@@ -1,0 +1,50 @@
+services:
+  spotipy-dashboard:
+    build: .
+    container_name: spotipy-dashboard
+    stdin_open: true
+    tty: true
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app
+      - ./data:/app/data
+    env_file:
+      - .env
+    environment:
+      - TZ=${TZ:-UTC}
+      - DB_HOST=${DB_HOST:-spotipy_db}
+      - DB_PORT=${DB_PORT:-5432}
+      - FLET_PORT={FLET_PORT:-8000$}
+    depends_on:
+      spotipy_db:
+        condition: service_healthy
+        required: false
+    restart: unless-stopped
+    # check if WEBPAPI is responding
+    healthcheck:
+      test: ["CMD-SHELL", "test -f /tmp/app_health && grep -q 'OK' /tmp/app_health"]
+      interval: 5s
+      timeout: 10s
+      retries: 3
+      start_period: 2m
+
+  spotipy_db:
+    image: postgres:15-alpine
+    container_name: spotipy_db
+    profiles: ["postgres"]
+    env_file:
+      - .env
+    environment:
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - POSTGRES_DB=${DB_NAME}
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    volumes:
+      - ./postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5

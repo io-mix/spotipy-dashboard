@@ -1,0 +1,37 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache
+
+# Environments
+.env
+.venv
+venv/
+dist/
+build/
+
+# The local running directory (Where the app lives at runtime)
+# This folder will contain your .db, .cache, and the injected code
+data/
+
+# Docker / Nix / System
+postgres_data/
+.direnv/
+SpotifyAPI
+SpotifyAPI-1-link
+*.tmp
+.hidden
+*.old
+
+# IDEs
+.vscode/
+
+# Scripts
+compose-down.sh
+compose-up.sh
+start.sh
+flatten.sh
+
+to-do.txt
+allFiles/
