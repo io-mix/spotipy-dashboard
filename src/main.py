@@ -133,6 +133,8 @@ async def main(page: ft.Page):
             except:
                 pass
 
+    page.show_auth_dialog_task = show_auth_dialog
+
     # combined view mapping
     views = {
         "dashboard": {
@@ -380,16 +382,7 @@ async def main(page: ft.Page):
             write_health_status(STRINGS.MESSAGES.STATUS_OK)
             sidebar.set_auth_state(False)
 
-            active_container = (
-                mobile_shell.view_container
-                if is_mobile_mode
-                else desktop_main_container
-            )
-            current_view = active_container.content
-
-            # only refresh if the view is currently mounted
-            if current_view and hasattr(current_view, "refresh") and current_view.page:
-                await current_view.refresh()
+            await trigger_refresh()
 
             show_snack(
                 STRINGS.MESSAGES.SYNC_COMPLETE_NEW.format(count=count)
@@ -438,6 +431,17 @@ async def main(page: ft.Page):
 
     # mobile shell components
     mobile_shell = MobileShell(page=page, on_sync=handle_sync_click)
+
+    async def trigger_refresh():
+        active_container = (
+            mobile_shell.view_container if is_mobile_mode else desktop_main_container
+        )
+        current_view = active_container.content
+        if current_view and hasattr(current_view, "refresh") and current_view.page:
+            await current_view.refresh()
+
+    page.trigger_refresh = trigger_refresh
+    page.sidebar_instance = sidebar
 
     # handle hardware back button on Android to close drawer
     async def on_back(e):
@@ -557,8 +561,10 @@ async def main(page: ft.Page):
                     for active_page in list(_active_pages):
                         try:
                             if active_page.client_ip:
-                                if hasattr(active_page, "sidebar"):
-                                    active_page.sidebar.set_auth_state(False)
+                                if hasattr(active_page, "sidebar_instance"):
+                                    active_page.sidebar_instance.set_auth_state(False)
+                                if hasattr(active_page, "trigger_refresh"):
+                                    active_page.run_task(active_page.trigger_refresh)
                         except:
                             pass
             except Exception as e:
@@ -568,7 +574,10 @@ async def main(page: ft.Page):
                     for active_page in list(_active_pages):
                         try:
                             if active_page.client_ip:
-                                active_page.run_task(show_auth_dialog)
+                                if hasattr(active_page, "show_auth_dialog_task"):
+                                    active_page.run_task(
+                                        active_page.show_auth_dialog_task
+                                    )
                         except:
                             pass
                 else:

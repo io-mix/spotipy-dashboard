@@ -11,7 +11,7 @@ from strings import STRINGS
 from utils import get_data_dir
 
 
-GENRES_NO = 1
+GENRES_NO = 2
 SYNC_DUPLICATE_THRESHOLD = 0.95
 SKIP_THRESHOLD = 0.5
 
