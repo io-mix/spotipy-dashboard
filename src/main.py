@@ -295,6 +295,8 @@ async def main(page: ft.Page):
                     pass
 
     async def sync_route(route: str):
+        await initialize_database()
+
         if not route or route == "/":
             route = "/dashboard"
 

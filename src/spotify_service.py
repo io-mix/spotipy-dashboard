@@ -66,15 +66,15 @@ class SpotifyService:
 
             async with AsyncSessionLocal() as db:
                 try:
-                    # Phase 1: parallelize spotify network call and initial db lookups
-                    # we also fetch currently playing to help validate the last track in the batch
-                    results, g_stat_result, current_playing = await asyncio.gather(
+                    # Phase 1: parallelize spotify network calls
+                    results, current_playing = await asyncio.gather(
                         asyncio.to_thread(
                             self.sp.current_user_recently_played, limit=50
                         ),
-                        db.execute(select(GlobalStat)),
                         asyncio.to_thread(self.sp.current_user_playing_track),
                     )
+
+                    g_stat_result = await db.execute(select(GlobalStat))
 
                     items = results.get("items", [])
                     if not items:
@@ -97,36 +97,22 @@ class SpotifyService:
                         )
                         duration_ms = item["track"]["duration_ms"]
 
-                        # subtract duration and truncate microseconds for stable duplicate checking
-                        start_ts = end_ts - timedelta(milliseconds=duration_ms)
-                        start_ts = start_ts.replace(microsecond=0)
-
-                        # Look-ahead skip detection:
+                        # skip detection:
+                        # compare the end time of this track to the end time of the previous track
+                        # to determine how long the user actually spent listening to it.
                         is_skipped = False
-                        if i < len(items) - 1:
-                            # compare to the next track in the batch
-                            next_end_ts = datetime.strptime(
-                                items[i + 1]["played_at"][:19], "%Y-%m-%dT%H:%M:%S"
+                        if i > 0:
+                            prev_end_ts = datetime.strptime(
+                                items[i - 1]["played_at"][:19], "%Y-%m-%dT%H:%M:%S"
                             )
-                            next_duration_ms = items[i + 1]["track"]["duration_ms"]
-                            next_start_ts = next_end_ts - timedelta(
-                                milliseconds=next_duration_ms
-                            )
-
-                            gap_seconds = (next_start_ts - start_ts).total_seconds()
-                            if gap_seconds < (duration_ms / 1000.0) * SKIP_THRESHOLD:
+                            time_spent = (end_ts - prev_end_ts).total_seconds()
+                            if time_spent < (duration_ms / 1000.0) * SKIP_THRESHOLD:
                                 is_skipped = True
-                        elif current_playing and current_playing.get("item"):
-                            # for the last track, compare to what is playing right now
-                            # if the gap is too small, the user likely skipped the last track to play the current one
-                            curr_item = current_playing["item"]
-                            if curr_item["id"] != item["track"]["id"]:
-                                now_ts = datetime.now(timezone.utc).replace(tzinfo=None)
-                                gap_to_now = (now_ts - start_ts).total_seconds()
-                                if gap_to_now < (duration_ms / 1000.0) * SKIP_THRESHOLD:
-                                    is_skipped = True
 
                         if not is_skipped:
+                            # subtract duration and truncate microseconds for stable duplicate checking
+                            start_ts = end_ts - timedelta(milliseconds=duration_ms)
+                            start_ts = start_ts.replace(microsecond=0)
                             processed_items.append(
                                 {
                                     "raw": item,
@@ -143,13 +129,12 @@ class SpotifyService:
                     min_ts, max_ts = min(incoming_timestamps), max(incoming_timestamps)
                     daily_dates = {ts.date() for ts in incoming_timestamps}
 
-                    # Phase 2: parallelize artist metadata fetch and all bulk db checks
-                    # optimization: only fetch artists that don't have genres in our Track table yet
-                    tracks_task = db.execute(
+                    # Phase 2: sequential db checks to prevent SessionTransactionState errors
+                    existing_tracks_res = await db.execute(
                         select(Track).filter(Track.id.in_(incoming_track_ids))
                     )
 
-                    history_task = db.execute(
+                    existing_records_res = await db.execute(
                         select(
                             ListeningHistory.played_at, ListeningHistory.track_id
                         ).filter(
@@ -160,7 +145,7 @@ class SpotifyService:
                         )
                     )
 
-                    daily_task = db.execute(
+                    existing_daily_res = await db.execute(
                         select(DailyTrackStat).filter(
                             and_(
                                 DailyTrackStat.date.between(
@@ -169,10 +154,6 @@ class SpotifyService:
                                 DailyTrackStat.track_id.in_(incoming_track_ids),
                             )
                         )
-                    )
-
-                    existing_tracks_res, existing_records_res, existing_daily_res = (
-                        await asyncio.gather(tracks_task, history_task, daily_task)
                     )
 
                     # map results for O(1) access in the loop

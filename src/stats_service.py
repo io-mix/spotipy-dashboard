@@ -316,12 +316,9 @@ async def update_dashboard_summary():
                 .limit(1)
             )
 
-            # execute all three in parallel to reduce latency
-            s_res, ar_res, al_res = await asyncio.gather(
-                session.execute(song_q),
-                session.execute(artist_q),
-                session.execute(album_q),
-            )
+            s_res = await session.execute(song_q)
+            ar_res = await session.execute(artist_q)
+            al_res = await session.execute(album_q)
 
             return {
                 "song": s_res.scalar() or STRINGS.COMMON.NA,
